@@ -1,0 +1,2103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Samarth Sharma — Event Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --gold: #C9A84C;
+    --gold-light: #E8C97A;
+    --ink: #0D0D0D;
+    --cream: #F5F0E8;
+    --warm-white: #FAF8F4;
+    --charcoal: #1C1C1C;
+    --muted: #7A7060;
+    --reel-gap: 16px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--ink);
+    color: var(--cream);
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Respect touch devices and reduced motion */
+  @media (hover: none), (pointer: coarse) {
+    .horizontal-reel { cursor: auto; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .reel-track-v, .reel-track-v2, .marquee-track, .scroll-line::after { animation: none !important; }
+    .reveal { transition: none !important; transform: none !important; opacity: 1 !important; }
+    .hero-eyebrow,
+    .hero-name,
+    .hero-role,
+    .hero-tagline,
+    .hero-cta,
+    .scroll-indicator {
+      opacity: 1 !important;
+      animation: none !important;
+      transform: none !important;
+    }
+    .hero-role-dot,
+    .hero-role-tag::before {
+      animation: none !important;
+    }
+  }
+
+  /* NOISE TEXTURE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.22;
+    display: none; /* prevents click/drag repaint blanking */
+  }
+
+  nav, .hero, .marquee-section, .stats-section, .services-section, .xp-section,
+  .reel-section, .about-section, .contact-section, footer {
+    position: relative;
+    z-index: 1;
+  }
+
+  .build-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 1px solid rgba(201,168,76,0.18);
+    color: rgba(245,240,232,0.72);
+    background: rgba(255,255,255,0.02);
+    letter-spacing: 0.16em;
+    font-size: 9px;
+    text-transform: uppercase;
+    user-select: none;
+  }
+  .build-badge i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--gold);
+    display: inline-block;
+    opacity: 0.9;
+  }
+
+  /* ============ HERO ============ */
+  .hero {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 56px 60px 80px 80px;
+    position: relative;
+    z-index: 50;
+  }
+
+  /* Prevent "blank" feel even if text fails to paint */
+  .hero-left::before {
+    content: 'SAMARTH';
+    position: absolute;
+    left: 70px;
+    top: 120px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 160px;
+    letter-spacing: 0.12em;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(201,168,76,0.08);
+    pointer-events: none;
+    user-select: none;
+    z-index: -1;
+  }
+
+  .hero-eyebrow {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 28px;
+    opacity: 1;
+  }
+
+  .hero-name {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(64px, 7vw, 110px);
+    font-weight: 900;
+    line-height: 0.92;
+    color: var(--cream);
+    margin-bottom: 32px;
+    opacity: 1;
+    text-shadow: 0 12px 40px rgba(0,0,0,0.55);
+  }
+
+  .hero-name em {
+    font-style: italic;
+    color: var(--gold);
+    display: block;
+  }
+
+  /* Animated role tag */
+  .hero-role {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 22px;
+    opacity: 1;
+  }
+
+  .hero-role-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 0 0 rgba(201,168,76,0.0);
+    animation: rolePulse 1.8s ease-in-out infinite;
+    flex: 0 0 auto;
+  }
+
+  @keyframes rolePulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(201,168,76,0.0); opacity: 0.95; }
+    50% { transform: scale(1.25); box-shadow: 0 0 0 10px rgba(201,168,76,0.06); opacity: 1; }
+  }
+
+  .hero-role-tag {
+    position: relative;
+    display: inline-block;
+    padding: 10px 14px;
+    border: 1px solid rgba(201,168,76,0.22);
+    background: rgba(255,255,255,0.02);
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    font-size: 11px;
+    color: rgba(245,240,232,0.82);
+    overflow: hidden;
+    user-select: none;
+    cursor: pointer;
+  }
+
+  .hero-role-tag::before {
+    content: '';
+    position: absolute;
+    inset: -40%;
+    background: conic-gradient(from 180deg, transparent, rgba(201,168,76,0.18), transparent, rgba(245,240,232,0.06), transparent);
+    animation: roleSheen 5.5s linear infinite;
+  }
+
+  @keyframes roleSheen {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .hero-role-tag > span {
+    position: relative;
+    z-index: 1;
+  }
+
+  .shatter-text { display: inline-block; white-space: nowrap; }
+  .shatter-text .ch {
+    display: inline-block;
+    will-change: transform, opacity, filter;
+    transition:
+      transform 650ms cubic-bezier(.2,.8,.2,1),
+      opacity 650ms cubic-bezier(.2,.8,.2,1),
+      filter 650ms cubic-bezier(.2,.8,.2,1);
+    transform: translate3d(0,0,0) rotate(0deg);
+  }
+  .shatter-text.is-shattered .ch {
+    transform:
+      translate3d(var(--dx, 0px), var(--dy, 0px), 0)
+      rotate(var(--dr, 0deg))
+      scale(var(--ds, 1));
+    opacity: var(--do, 1);
+    filter: blur(var(--db, 0px));
+  }
+
+  .hero-role-tag:hover {
+    border-color: rgba(201,168,76,0.5);
+    background: rgba(201,168,76,0.05);
+  }
+
+  .hero-tagline {
+    font-size: 15px;
+    font-weight: 300;
+    color: var(--muted);
+    line-height: 1.8;
+    max-width: 380px;
+    margin-bottom: 48px;
+    opacity: 1;
+    letter-spacing: 0.02em;
+  }
+
+  .hero-cta {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    opacity: 1;
+  }
+
+  .btn-primary {
+    background: var(--gold);
+    color: var(--ink);
+    padding: 14px 34px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--ink);
+    transform: translateX(-101%);
+    transition: transform 0.3s ease;
+    z-index: 0;
+  }
+
+  .btn-primary:hover::after { transform: translateX(0); }
+  .btn-primary span { position: relative; z-index: 1; }
+  .btn-primary:hover span { color: var(--gold); }
+
+  .btn-ghost {
+    color: var(--cream);
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+  .btn-ghost:hover { opacity: 1; }
+  .btn-ghost::after { content: '↓'; font-size: 16px; }
+
+  /* HERO VERTICAL RULE */
+  .hero-rule {
+    position: absolute;
+    left: 0; top: 80px; bottom: 80px;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--gold) 30%, var(--gold) 70%, transparent);
+    opacity: 0.25;
+  }
+
+  /* HERO RIGHT — FILM REEL */
+  .hero-right {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    z-index: 1;
+  }
+
+  .reel-track-v {
+    display: flex;
+    flex-direction: column;
+    gap: var(--reel-gap);
+    animation: scrollReelDown 26s linear infinite;
+    padding: 0 var(--reel-gap);
+  }
+
+  .reel-track-v2 {
+    display: flex;
+    flex-direction: column;
+    gap: var(--reel-gap);
+    animation: scrollReelUp 37s linear infinite;
+    animation-delay: -11s;
+    padding: 0 var(--reel-gap);
+  }
+
+  .reel-columns {
+    display: flex;
+    flex-direction: row;
+    gap: calc(var(--reel-gap) + 10px);
+    height: 100%;
+    padding: 0 30px 0 40px;
+    transform: perspective(1100px) rotateX(10deg) rotateY(-10deg);
+    transform-origin: right center;
+  }
+
+  .reel-col { display: flex; flex-direction: column; gap: var(--reel-gap); }
+
+  .reel-frame {
+    width: 180px;
+    height: 130px;
+    flex-shrink: 0;
+    position: relative;
+    border: 2px solid rgba(201,168,76,0.2);
+    overflow: hidden;
+    transition: border-color 0.3s;
+    transform: translateY(var(--curve-y, 0px));
+    will-change: transform;
+  }
+
+  .reel-frame:hover { border-color: var(--gold); }
+
+  /* Film sprocket holes */
+  .reel-frame::before, .reel-frame::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    background: repeating-linear-gradient(
+      to bottom,
+      var(--ink) 0px,
+      var(--ink) 8px,
+      transparent 8px,
+      transparent 18px
+    );
+    height: 80%;
+    z-index: 3;
+    opacity: 0.85;
+  }
+  .reel-frame::before { left: 0; }
+  .reel-frame::after { right: 0; }
+
+  .reel-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: sepia(30%) contrast(1.05);
+    transition: filter 0.3s, transform 0.4s;
+  }
+  .reel-frame:hover .reel-img { filter: sepia(0) contrast(1.1); transform: scale(1.06); }
+
+  .reel-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: sepia(20%) contrast(1.06) brightness(0.9);
+    transition: filter 0.3s, transform 0.4s;
+  }
+  .reel-frame:hover .reel-video { filter: sepia(0) contrast(1.1) brightness(1); transform: scale(1.06); }
+
+  .reel-placeholder {
+    width: 100%;
+    height: 100%;
+    background: var(--charcoal);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .reel-placeholder-icon {
+    width: 32px; height: 32px;
+    border: 1.5px solid rgba(201,168,76,0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: var(--gold);
+    opacity: 0.6;
+  }
+
+  .reel-placeholder-text {
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* REEL LABELS */
+  .reel-label {
+    position: absolute;
+    bottom: 6px;
+    left: 12px;
+    right: 12px;
+    font-size: 8px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold-light);
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 4;
+  }
+  .reel-frame:hover .reel-label { opacity: 1; }
+
+  /* Gradient masks for reel */
+  .hero-right::before, .hero-right::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    height: 200px;
+    z-index: 10;
+    pointer-events: none;
+  }
+  /* Disable masks that can cause repaint blanking on some systems */
+  .hero-right::before, .hero-right::after { display: none; }
+  .hero-right::before {
+    top: 0;
+    background: linear-gradient(to bottom, var(--ink), transparent);
+  }
+  .hero-right::after {
+    bottom: 0;
+    background: linear-gradient(to top, var(--ink), transparent);
+  }
+
+  /* Film strip decorative lines */
+  .filmstrip-line {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: rgba(201,168,76,0.08);
+    z-index: 5;
+  }
+  .filmstrip-line:nth-child(1) { left: 30px; }
+  .filmstrip-line:nth-child(2) { right: 30px; }
+
+  @keyframes scrollReelDown {
+    from { transform: translateY(0); }
+    to { transform: translateY(-50%); }
+  }
+  @keyframes scrollReelUp {
+    from { transform: translateY(-50%); }
+    to { transform: translateY(0); }
+  }
+
+  /* SCROLL INDICATOR */
+  .scroll-indicator {
+    position: absolute;
+    bottom: 40px;
+    left: 80px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    opacity: 0;
+    animation: fadeIn 1s 1.4s forwards;
+  }
+
+  .scroll-line {
+    width: 40px;
+    height: 1px;
+    background: var(--gold);
+    position: relative;
+    overflow: hidden;
+  }
+  .scroll-line::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: var(--cream);
+    animation: scanLine 2s ease-in-out infinite;
+  }
+
+  @keyframes scanLine {
+    0% { left: -100%; }
+    100% { left: 200%; }
+  }
+
+  .scroll-text {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* YEAR BADGE */
+  .year-badge {
+    position: absolute;
+    bottom: 40px;
+    right: 80px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 80px;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(201,168,76,0.12);
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* ============ NAV ============ */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 500;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 28px 80px;
+    mix-blend-mode: normal;
+  }
+
+  nav::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(13,13,13,0.7), transparent);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .nav-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--cream);
+    text-decoration: none;
+    letter-spacing: 0.04em;
+  }
+
+  .nav-logo span { color: var(--gold); }
+
+  .nav-links {
+    display: flex;
+    gap: 40px;
+    list-style: none;
+  }
+
+  .nav-toggle {
+    display: none;
+    background: transparent;
+    border: 1px solid rgba(201,168,76,0.22);
+    color: var(--cream);
+    width: 44px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+  }
+
+  .nav-links a {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+    position: relative;
+  }
+  .nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 0; right: 100%;
+    height: 1px;
+    background: var(--gold);
+    transition: right 0.3s ease;
+  }
+  .nav-links a:hover { color: var(--cream); }
+  .nav-links a:hover::after { right: 0; }
+
+  /* ============ MARQUEE ============ */
+  .marquee-section {
+    border-top: 1px solid rgba(201,168,76,0.15);
+    border-bottom: 1px solid rgba(201,168,76,0.15);
+    padding: 20px 0;
+    overflow: hidden;
+    background: rgba(201,168,76,0.04);
+  }
+
+  .marquee-track {
+    display: flex;
+    gap: 60px;
+    white-space: nowrap;
+    animation: marquee 20s linear infinite;
+  }
+
+  .marquee-item {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 60px;
+    flex-shrink: 0;
+  }
+
+  .marquee-dot {
+    width: 5px; height: 5px;
+    background: var(--gold);
+    border-radius: 50%;
+  }
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* ============ STATS ============ */
+  .stats-section {
+    padding: 100px 80px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: rgba(201,168,76,0.12);
+    position: relative;
+  }
+
+  .stat-card {
+    background: var(--ink);
+    padding: 60px 48px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+  }
+
+  .stat-card:hover { background: var(--charcoal); }
+
+  .stat-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 80px;
+    color: var(--gold);
+    line-height: 1;
+    display: block;
+    margin-bottom: 12px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: block;
+    line-height: 1.6;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    bottom: -20px;
+    right: -20px;
+    width: 80px;
+    height: 80px;
+    border: 1px solid rgba(201,168,76,0.08);
+    border-radius: 50%;
+    transition: all 0.4s ease;
+  }
+  .stat-card:hover::before {
+    width: 140px; height: 140px;
+    border-color: rgba(201,168,76,0.15);
+  }
+
+  /* ============ SERVICES ============ */
+  .services-section {
+    padding: 120px 80px;
+    position: relative;
+  }
+
+  .section-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: end;
+    margin-bottom: 80px;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .section-label::before {
+    content: '';
+    width: 30px;
+    height: 1px;
+    background: var(--gold);
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(40px, 5vw, 70px);
+    font-weight: 900;
+    line-height: 1.0;
+    color: var(--cream);
+  }
+
+  .section-title em {
+    font-style: italic;
+    color: var(--gold);
+  }
+
+  .section-desc {
+    font-size: 15px;
+    font-weight: 300;
+    color: var(--muted);
+    line-height: 1.9;
+    max-width: 420px;
+    align-self: end;
+  }
+
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: rgba(201,168,76,0.1);
+  }
+
+  .service-card {
+    background: var(--charcoal);
+    padding: 52px 44px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.4s;
+    cursor: pointer;
+  }
+  .service-card:hover { background: #222; }
+
+  .service-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 54px;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(201,168,76,0.2);
+    line-height: 1;
+    margin-bottom: 28px;
+    transition: color 0.3s, -webkit-text-stroke 0.3s;
+  }
+  .service-card:hover .service-num {
+    color: var(--gold);
+    -webkit-text-stroke: 1px var(--gold);
+  }
+
+  .service-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--cream);
+    margin-bottom: 16px;
+    line-height: 1.2;
+  }
+
+  .service-desc {
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--muted);
+    line-height: 1.9;
+  }
+
+  .service-arrow {
+    position: absolute;
+    bottom: 44px;
+    right: 44px;
+    width: 36px;
+    height: 36px;
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gold);
+    font-size: 14px;
+    transform: translate(10px, 10px);
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
+  .service-card:hover .service-arrow { transform: translate(0, 0); opacity: 1; }
+
+  /* ============ EXPERIENCE ============ */
+  .xp-section {
+    padding: 120px 80px;
+    border-top: 1px solid rgba(201,168,76,0.12);
+    border-bottom: 1px solid rgba(201,168,76,0.12);
+    background: rgba(201,168,76,0.02);
+  }
+
+  .xp-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 60px;
+    align-items: start;
+  }
+
+  .xp-card {
+    border: 1px solid rgba(201,168,76,0.14);
+    background: rgba(255,255,255,0.02);
+    padding: 34px 32px;
+  }
+
+  .xp-role {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 10px;
+  }
+
+  .xp-meta {
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+
+  .xp-list {
+    display: grid;
+    gap: 12px;
+    padding-left: 18px;
+    color: rgba(245,240,232,0.78);
+    line-height: 1.8;
+    font-weight: 300;
+    font-size: 14px;
+  }
+
+  .xp-pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .xp-pill {
+    padding: 8px 14px;
+    border: 1px solid rgba(201,168,76,0.22);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ============ REEL SHOWCASE ============ */
+  .reel-section {
+    padding: 120px 0 120px 80px;
+    overflow: hidden;
+  }
+
+  .reel-section .section-header { padding-right: 80px; }
+
+  .horizontal-reel {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    overflow-x: auto;
+    padding: 40px 0;
+    scrollbar-width: none;
+    cursor: grab;
+    scroll-behavior: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
+  .horizontal-reel:active { cursor: grabbing; }
+  .horizontal-reel::-webkit-scrollbar { display: none; }
+
+  .h-reel-frame {
+    flex-shrink: 0;
+    width: 300px;
+    height: 400px;
+    position: relative;
+    overflow: hidden;
+    border: 2px solid rgba(201,168,76,0.15);
+    transition: border-color 0.3s, transform 0.4s;
+    transform: translateY(var(--h-curve-y, 0px)) rotate(var(--h-tilt, 0deg));
+    animation: reelBreath 4.8s ease-in-out infinite;
+    animation-delay: var(--h-delay, 0s);
+  }
+
+  .h-reel-frame:hover {
+    border-color: var(--gold);
+    transform: translateY(calc(var(--h-curve-y, 0px) - 8px)) rotate(var(--h-tilt, 0deg)) scale(1.01);
+  }
+
+  @keyframes reelBreath {
+    0%, 100% {
+      transform: translateY(var(--h-curve-y, 0px)) rotate(var(--h-tilt, 0deg));
+    }
+    50% {
+      transform: translateY(calc(var(--h-curve-y, 0px) - 6px)) rotate(calc(var(--h-tilt, 0deg) + 0.45deg));
+    }
+  }
+
+  .h-reel-frame::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 100%;
+    background: repeating-linear-gradient(
+      to right,
+      rgba(13,13,13,0.9) 0px,
+      rgba(13,13,13,0.9) 12px,
+      transparent 12px,
+      transparent 20px,
+      rgba(13,13,13,0.9) 20px,
+      rgba(13,13,13,0.9) 32px
+    );
+    background-size: 32px 100%;
+    background-repeat: no-repeat;
+    background-position: left center;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .h-reel-inner {
+    width: 100%;
+    height: 100%;
+    background: #1a1810;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    position: relative;
+  }
+
+  .h-reel-media {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    filter: contrast(1.05) saturate(1.08);
+  }
+
+  .h-reel-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    filter: contrast(1.04) saturate(1.05);
+  }
+
+  .h-reel-inner::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(13,13,13,0.82), rgba(13,13,13,0.2) 45%, rgba(13,13,13,0.08));
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* Film hole decoration on horizontal frames */
+  .h-holes {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 20px;
+    left: 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 3;
+  }
+
+  .h-hole {
+    width: 10px;
+    height: 8px;
+    background: var(--ink);
+    border-radius: 2px;
+  }
+
+  .h-reel-content {
+    text-align: center;
+    padding: 0 44px;
+    z-index: 2;
+  }
+
+  .h-reel-icon {
+    font-size: 28px;
+    margin-bottom: 14px;
+    display: block;
+    opacity: 0.5;
+    color: var(--gold);
+  }
+
+  .h-reel-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--cream);
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+
+  .h-reel-sub {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .h-reel-tag {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: var(--gold);
+    color: var(--ink);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    z-index: 5;
+  }
+
+  /* ============ ABOUT STRIP ============ */
+  .about-section {
+    padding: 120px 80px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 100px;
+    align-items: center;
+  }
+
+  .about-image-col {
+    position: relative;
+    height: 600px;
+  }
+
+  .about-frame-main {
+    position: absolute;
+    top: 0; left: 40px; right: 0;
+    bottom: 60px;
+    border: 2px solid rgba(201,168,76,0.3);
+    background: var(--charcoal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .about-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: contrast(1.03) saturate(1.02);
+    transform: scale(1.02);
+  }
+
+  .about-photo::selection { background: transparent; }
+
+  .about-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: var(--muted);
+  }
+
+  .about-placeholder-ring {
+    width: 64px; height: 64px;
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: var(--gold);
+    opacity: 0.5;
+  }
+
+  .about-frame-accent {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 200px; height: 180px;
+    border: 2px solid var(--gold);
+    background: rgba(201,168,76,0.04);
+    z-index: 2;
+  }
+
+  .about-year-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 100px;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(201,168,76,0.1);
+    position: absolute;
+    bottom: 20px;
+    right: -20px;
+    line-height: 1;
+    z-index: 0;
+    user-select: none;
+  }
+
+  .about-bio {
+    font-size: 16px;
+    font-weight: 300;
+    color: rgba(245,240,232,0.75);
+    line-height: 2.0;
+    margin-bottom: 28px;
+  }
+
+  .about-bio strong {
+    color: var(--cream);
+    font-weight: 500;
+  }
+
+  .skills-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 40px;
+  }
+
+  .skill-pill {
+    padding: 8px 18px;
+    border: 1px solid rgba(201,168,76,0.25);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    transition: all 0.25s;
+    cursor: pointer;
+  }
+  .skill-pill:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: rgba(201,168,76,0.05);
+  }
+
+  /* ============ CONTACT ============ */
+  .contact-section {
+    padding: 120px 80px;
+    border-top: 1px solid rgba(201,168,76,0.12);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: start;
+  }
+
+  .contact-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(48px, 5vw, 80px);
+    font-weight: 900;
+    color: var(--cream);
+    line-height: 0.95;
+    margin-bottom: 32px;
+  }
+
+  .contact-title em { font-style: italic; color: var(--gold); display: block; }
+
+  .contact-meta {
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--muted);
+    line-height: 1.9;
+    max-width: 360px;
+  }
+
+  .contact-form { display: flex; flex-direction: column; gap: 20px; }
+
+  .form-field {
+    position: relative;
+  }
+
+  .form-field input,
+  .form-field textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(201,168,76,0.15);
+    color: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    padding: 16px 20px;
+    outline: none;
+    transition: border-color 0.3s;
+    resize: none;
+  }
+
+  .form-field input:focus,
+  .form-field textarea:focus { border-color: var(--gold); }
+
+  .form-field input::placeholder,
+  .form-field textarea::placeholder { color: var(--muted); }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  .submit-btn {
+    background: transparent;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 18px 40px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: color 0.3s;
+    align-self: start;
+  }
+
+  .submit-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--gold);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.35s ease;
+    z-index: 0;
+  }
+  .submit-btn:hover::before { transform: scaleX(1); }
+  .submit-btn:hover { color: var(--ink); }
+  .submit-btn span { position: relative; z-index: 1; }
+
+  /* ============ FOOTER ============ */
+  footer {
+    padding: 40px 80px;
+    border-top: 1px solid rgba(201,168,76,0.12);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--cream);
+    opacity: 0.6;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 30px;
+    list-style: none;
+  }
+
+  .footer-links a {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--gold); }
+
+  .footer-copy {
+    font-size: 11px;
+    color: var(--muted);
+    opacity: 0.5;
+  }
+
+  /* ============ ANIMATIONS ============ */
+  @keyframes fadeUp {
+    from { transform: translateY(30px); }
+    to { transform: translateY(0); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* Hover scale on stat numbers */
+  .stat-card:hover .stat-number {
+    animation: goldPulse 0.4s ease;
+  }
+
+  @keyframes goldPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 1100px) {
+    nav { padding: 22px 28px; }
+    .hero { grid-template-columns: 1fr; }
+    .hero-left { padding: 88px 28px 40px 28px; }
+    .hero-right { min-height: 420px; }
+    .scroll-indicator { left: 28px; }
+    .year-badge { right: 28px; font-size: 64px; }
+    .stats-section { padding: 70px 28px; grid-template-columns: repeat(2, 1fr); }
+    .services-section { padding: 90px 28px; }
+    .section-header { grid-template-columns: 1fr; gap: 18px; margin-bottom: 44px; }
+    .services-grid { grid-template-columns: 1fr; }
+    .reel-section { padding: 90px 0 90px 28px; }
+    .reel-section .section-header { padding-right: 28px; }
+    .horizontal-reel { padding: 26px 28px 26px 0; }
+    .about-section { padding: 90px 28px; grid-template-columns: 1fr; gap: 52px; }
+    .about-image-col { height: 480px; }
+    .contact-section { padding: 90px 28px; grid-template-columns: 1fr; gap: 44px; }
+    footer { padding: 28px; flex-direction: column; align-items: flex-start; gap: 18px; }
+    .footer-links { flex-wrap: wrap; gap: 18px; }
+  }
+
+  @media (max-width: 820px) {
+    nav { align-items: center; gap: 16px; }
+    .nav-toggle { display: inline-flex; }
+    .nav-links {
+      position: absolute;
+      top: 72px;
+      right: 18px;
+      left: 18px;
+      flex-direction: column;
+      gap: 0;
+      background: rgba(13,13,13,0.94);
+      border: 1px solid rgba(201,168,76,0.14);
+      backdrop-filter: blur(12px);
+      padding: 12px 10px;
+      display: none;
+    }
+    nav.is-open .nav-links { display: flex; }
+    .nav-links a { padding: 14px 12px; display: block; }
+    .nav-links a::after { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#home" class="nav-logo">S<span>.</span>Sharma</a>
+  <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false">MENU</button>
+  <ul class="nav-links">
+    <li><a href="#services">Expertise</a></li>
+    <li><a href="#experience">Experience</a></li>
+    <li><a href="#work">Reel</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-left">
+    <div class="hero-rule"></div>
+    <span class="hero-eyebrow">Event Manager &amp; Production Specialist</span>
+    <h1 class="hero-name">
+      Samarth<br>
+      <em>Sharma</em>
+    </h1>
+    <div class="hero-role">
+      <span class="hero-role-dot" aria-hidden="true"></span>
+      <div class="hero-role-tag" title="Hover to shatter">
+        <span id="eventTag" class="shatter-text" data-text="Event Manager">Event Manager</span>
+      </div>
+    </div>
+    <p class="hero-tagline">
+      Dynamic Event Manager with hands-on experience delivering high-profile artist concerts and university festivals—focused on technical stage design, sound/light coordination, and seamless production.
+    </p>
+    <div class="hero-cta">
+      <a href="#contact" class="btn-primary"><span>Contact</span></a>
+      <a href="#work" class="btn-ghost">See the reel</a>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="filmstrip-line"></div>
+    <div class="filmstrip-line"></div>
+    <div class="reel-columns">
+
+      <!-- Column 1: scrolling down -->
+      <div class="reel-col">
+        <div class="reel-track-v" id="col1">
+          <div class="reel-frame">
+            <img class="reel-img" src="WhatsApp%20Image%202026-04-14%20at%201.22.57%20AM.jpeg" alt="Live event">
+            <span class="reel-label">Live</span>
+          </div>
+          <div class="reel-frame">
+            <img class="reel-img" src="WhatsApp%20Image%202026-04-14%20at%201.11.24%20AM.jpeg" alt="Design frame">
+            <span class="reel-label">Design</span>
+          </div>
+          <div class="reel-frame">
+            <img class="reel-img" src="WhatsApp%20Image%202026-04-14%20at%201.22.56%20AM%20(1).jpeg" alt="Artist frame">
+            <span class="reel-label">Artist</span>
+          </div>
+          <div class="reel-frame">
+            <img class="reel-img" src="WhatsApp%20Image%202026-04-14%20at%201.22.54%20AM.jpeg" alt="Audio frame">
+            <span class="reel-label">Audio</span>
+          </div>
+          <div class="reel-frame">
+            <img class="reel-img" src="WhatsApp%20Image%202026-04-14%20at%201.22.57%20AM.jpeg" alt="Live event">
+            <span class="reel-label">Live</span>
+          </div>
+          <div class="reel-frame">
+            <img class="reel-img" src="WhatsApp%20Image%202026-04-14%20at%201.11.24%20AM.jpeg" alt="Design frame">
+            <span class="reel-label">Design</span>
+          </div>
+          <div class="reel-frame">
+            <img class="reel-img" src="WhatsApp%20Image%202026-04-14%20at%201.22.56%20AM%20(1).jpeg" alt="Artist frame">
+            <span class="reel-label">Artist</span>
+          </div>
+          <div class="reel-frame">
+            <img class="reel-img" src="WhatsApp%20Image%202026-04-14%20at%201.22.54%20AM.jpeg" alt="Audio frame">
+            <span class="reel-label">Audio</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Column 2: scrolling up -->
+      <div class="reel-col" style="margin-top: 60px; margin-left: 10px;">
+        <div class="reel-track-v2" id="col2">
+          <div class="reel-frame">
+            <img class="reel-img" src="WhatsApp%20Image%202026-04-14%20at%201.15.22%20AM.jpeg" alt="Stage frame">
+            <span class="reel-label">Stage</span>
+          </div>
+          <div class="reel-frame">
+            <img class="reel-img" src="WhatsApp%20Image%202026-04-14%20at%201.11.13%20AM.jpeg" alt="Artist frame">
+            <span class="reel-label">Artist</span>
+          </div>
+          <div class="reel-frame">
+            <img class="reel-img" src="WhatsApp%20Image%202026-04-14%20at%201.11.20%20AM.jpeg" alt="Stage frame">
+            <span class="reel-label">Stage</span>
+          </div>
+          <div class="reel-frame">
+            <img class="reel-img" src="WhatsApp%20Image%202026-04-14%20at%201.22.54%20AM.jpeg" alt="Audio frame">
+            <span class="reel-label">Audio</span>
+          </div>
+          <div class="reel-frame">
+            <img class="reel-img" src="WhatsApp%20Image%202026-04-14%20at%201.11.24%20AM.jpeg" alt="Design frame">
+            <span class="reel-label">Design</span>
+          </div>
+          <div class="reel-frame">
+            <img class="reel-img" src="WhatsApp%20Image%202026-04-14%20at%201.15.22%20AM.jpeg" alt="Lights frame">
+            <span class="reel-label">Lights</span>
+          </div>
+          <div class="reel-frame">
+            <img class="reel-img" src="WhatsApp%20Image%202026-04-14%20at%201.11.13%20AM.jpeg" alt="Artist frame">
+            <span class="reel-label">Artist</span>
+          </div>
+          <div class="reel-frame">
+            <img class="reel-img" src="WhatsApp%20Image%202026-04-14%20at%201.22.54%20AM.jpeg" alt="Audio frame">
+            <span class="reel-label">Audio</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="scroll-indicator">
+    <div class="scroll-line"></div>
+    <span class="scroll-text">Scroll to explore</span>
+  </div>
+
+  <div class="year-badge">2026</div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-section">
+  <div class="marquee-track" id="marquee">
+    <div class="marquee-item">Artist Concerts <span class="marquee-dot"></span></div>
+    <div class="marquee-item">University Festivals <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Stage Design <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Sound &amp; Lighting <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Vendor Coordination <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Backstage Ops <span class="marquee-dot"></span></div>
+    <div class="marquee-item">3D Visualisation <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Safety &amp; Structure <span class="marquee-dot"></span></div>
+    <!-- duplicate for seamless loop -->
+    <div class="marquee-item">Artist Concerts <span class="marquee-dot"></span></div>
+    <div class="marquee-item">University Festivals <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Stage Design <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Sound &amp; Lighting <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Vendor Coordination <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Backstage Ops <span class="marquee-dot"></span></div>
+    <div class="marquee-item">3D Visualisation <span class="marquee-dot"></span></div>
+    <div class="marquee-item">Safety &amp; Structure <span class="marquee-dot"></span></div>
+  </div>
+</div>
+
+<!-- STATS -->
+<section class="stats-section reveal" id="stats">
+  <div class="stat-card">
+    <span class="stat-number" data-target="4" data-suffix="+">0</span>
+    <span class="stat-label">Large‑scale<br>Events Delivered</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-number" data-target="5" data-suffix="+">0</span>
+    <span class="stat-label">National Artists<br>Coordinated</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-number" data-target="3" data-suffix="">0</span>
+    <span class="stat-label">3D Tools<br>Used</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-number" data-target="0" data-suffix="">0</span>
+    <span class="stat-label">Performance<br>Downtime Goal</span>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section class="services-section" id="services">
+  <div class="section-header reveal">
+    <div>
+      <div class="section-label">What I do</div>
+      <h2 class="section-title">Production, <em>Executed</em></h2>
+    </div>
+    <p class="section-desc">
+      From planning to show‑time—technical design, coordination, and on‑ground management that keeps performances smooth and audiences engaged.
+    </p>
+  </div>
+
+  <div class="services-grid reveal">
+    <div class="service-card">
+      <div class="service-num">01</div>
+      <h3 class="service-title">Artist &amp; Talent Coordination</h3>
+      <p class="service-desc">Coordinating artist requirements, backstage operations, and timelines—aligned to rider expectations and stage readiness.</p>
+      <div class="service-arrow">→</div>
+    </div>
+    <div class="service-card">
+      <div class="service-num">02</div>
+      <h3 class="service-title">Technical Stage Design</h3>
+      <p class="service-desc">Designing stage layouts and show flow with a practical, production-first approach to space, structure, and sightlines.</p>
+      <div class="service-arrow">→</div>
+    </div>
+    <div class="service-card">
+      <div class="service-num">03</div>
+      <h3 class="service-title">Sound &amp; Lighting Coordination</h3>
+      <p class="service-desc">Ensuring sound and lighting needs match artist-specific riders, with clean handoffs between vendors and operators.</p>
+      <div class="service-arrow">→</div>
+    </div>
+    <div class="service-card">
+      <div class="service-num">04</div>
+      <h3 class="service-title">Vendor &amp; Safety Management</h3>
+      <p class="service-desc">Coordinating stage production vendors—prioritizing structural safety, compliance, and alignment with the event theme.</p>
+      <div class="service-arrow">→</div>
+    </div>
+    <div class="service-card">
+      <div class="service-num">05</div>
+      <h3 class="service-title">On‑ground Production Leadership</h3>
+      <p class="service-desc">Managing teams onsite to reduce friction, keep cues tight, and avoid downtime during transitions and set changes.</p>
+      <div class="service-arrow">→</div>
+    </div>
+    <div class="service-card">
+      <div class="service-num">06</div>
+      <h3 class="service-title">3D Visualisation &amp; Layouts</h3>
+      <p class="service-desc">Using Blender, Vectorworks, and SketchUp to visualise layouts and translate concepts into build-ready plans.</p>
+      <div class="service-arrow">→</div>
+    </div>
+  </div>
+</section>
+
+<!-- EXPERIENCE -->
+<section class="xp-section" id="experience">
+  <div class="section-header reveal">
+    <div>
+      <div class="section-label">Resume</div>
+      <h2 class="section-title">Experience &amp; <em>Education</em></h2>
+    </div>
+    <p class="section-desc">
+      A quick snapshot of the work I’ve delivered and the tools I use to plan, visualise, and execute live productions.
+    </p>
+  </div>
+
+  <div class="xp-grid reveal">
+    <div class="xp-card">
+      <div class="xp-role">Lead Event Coordinator / Production Manager</div>
+      <div class="xp-meta">JECRC University · Rajasthan</div>
+      <ul class="xp-list">
+        <li>Managed and executed 4 major large‑scale events featuring national artists: Raftaar, King, B Praak, and Farhan Akhtar.</li>
+        <li>Designed and oversaw technical stage layouts; ensured sound &amp; lighting requirements met artist-specific riders.</li>
+        <li>Coordinated vendors for stage production with a focus on structural safety and theme alignment.</li>
+        <li>Led on‑ground teams to ensure seamless transitions between performances and zero downtime.</li>
+        <li>Facilitated event production and backstage management for a live concert featuring Armaan Malik.</li>
+      </ul>
+    </div>
+
+    <div class="xp-card">
+      <div class="xp-role">BCA in Cloud Computing (Microsoft)</div>
+      <div class="xp-meta">JECRC University · Jaipur</div>
+      <div class="xp-pill-row" aria-label="Tools and technical skills">
+        <span class="xp-pill">Blender</span>
+        <span class="xp-pill">Vectorworks</span>
+        <span class="xp-pill">SketchUp</span>
+        <span class="xp-pill">Stage Design</span>
+        <span class="xp-pill">Lighting Plots</span>
+        <span class="xp-pill">Sound Basics</span>
+      </div>
+      <div class="xp-pill-row" aria-label="Languages">
+        <span class="xp-pill">English</span>
+        <span class="xp-pill">Hindi</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REEL WORK SHOWCASE -->
+<section class="reel-section" id="work">
+  <div class="section-header reveal" style="padding-right: 80px;">
+    <div>
+      <div class="section-label">Portfolio</div>
+      <h2 class="section-title">The <em>Reel</em></h2>
+    </div>
+    <p class="section-desc">
+      Drag to explore production highlights. Image-based cards are optimized for smooth, lag-free reel movement.
+    </p>
+  </div>
+
+  <div class="horizontal-reel" id="hReel" data-media="video">
+
+    <div class="h-reel-frame">
+      <div class="h-holes">
+        <div class="h-hole"></div><div class="h-hole"></div><div class="h-hole"></div>
+        <div class="h-hole"></div><div class="h-hole"></div><div class="h-hole"></div>
+      </div>
+      <div class="h-reel-inner">
+        <video class="h-reel-video" autoplay muted loop playsinline preload="metadata" poster="WhatsApp%20Image%202026-04-14%20at%201.22.57%20AM.jpeg">
+          <source src="WhatsApp%20Video%202026-04-14%20at%201.16.56%20AM.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+
+    <div class="h-reel-frame">
+      <div class="h-holes">
+        <div class="h-hole"></div><div class="h-hole"></div><div class="h-hole"></div>
+        <div class="h-hole"></div><div class="h-hole"></div><div class="h-hole"></div>
+      </div>
+      <div class="h-reel-inner">
+        <video class="h-reel-video" autoplay muted loop playsinline preload="metadata" poster="WhatsApp%20Image%202026-04-14%20at%201.22.54%20AM.jpeg">
+          <source src="WhatsApp%20Video%202026-04-14%20at%201.16.57%20AM.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+
+    <div class="h-reel-frame">
+      <div class="h-holes">
+        <div class="h-hole"></div><div class="h-hole"></div><div class="h-hole"></div>
+        <div class="h-hole"></div><div class="h-hole"></div><div class="h-hole"></div>
+      </div>
+      <div class="h-reel-inner">
+        <video class="h-reel-video" autoplay muted loop playsinline preload="metadata" poster="WhatsApp%20Image%202026-04-14%20at%201.22.56%20AM%20(1).jpeg">
+          <source src="WhatsApp%20Video%202026-04-14%20at%201.17.10%20AM.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="about-section" id="about">
+  <div class="about-image-col reveal">
+    <div class="about-frame-main">
+      <img class="about-photo" src="profile.png" alt="Samarth Sharma">
+    </div>
+    <div class="about-frame-accent"></div>
+    <div class="about-year-text">JECRC</div>
+  </div>
+
+  <div class="about-text-col reveal">
+    <div class="section-label">About Samarth</div>
+    <h2 class="section-title" style="margin-bottom: 36px;">The Person<br><em>Behind</em> the Event</h2>
+
+    <p class="about-bio">
+      Dynamic Event Manager and Production Specialist with a proven record of executing high‑profile artist concerts and university festivals. I focus on technical stage design, sound/light coordination, and full‑scale production management.
+    </p>
+    <p class="about-bio">
+      I use 3D tools to visualise complex event layouts and coordinate teams and vendors to deliver smooth transitions and a show-ready stage—especially in high-pressure live performance environments.
+    </p>
+
+    <div class="skills-list">
+      <span class="skill-pill">Artist Coordination</span>
+      <span class="skill-pill">Public Relations</span>
+      <span class="skill-pill">Leadership</span>
+      <span class="skill-pill">Effective Communication</span>
+      <span class="skill-pill">Attention to Detail</span>
+      <span class="skill-pill">Time Management</span>
+      <span class="skill-pill">Teamwork</span>
+      <span class="skill-pill">Stage Design</span>
+      <span class="skill-pill">Lighting Plots</span>
+      <span class="skill-pill">Sound Basics</span>
+      <span class="skill-pill">Blender</span>
+      <span class="skill-pill">Vectorworks</span>
+      <span class="skill-pill">SketchUp</span>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="contact-section" id="contact">
+  <div class="reveal">
+    <h2 class="contact-title">Let's Create<br><em>Something</em><br>Unforgettable.</h2>
+    <p class="contact-meta">
+      For collaborations, event production, and concert coordination—reach out. I’m based in Jaipur, Rajasthan and available for projects across India.
+    </p>
+    <div style="margin-top: 40px; display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 32px; height: 32px; border: 1px solid rgba(201,168,76,0.25); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--gold);">✉</div>
+        <a href="mailto:samarths177@gmail.com" style="font-size: 14px; color: var(--muted); text-decoration: none;">samarths177@gmail.com</a>
+      </div>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 32px; height: 32px; border: 1px solid rgba(201,168,76,0.25); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--gold);">☏</div>
+        <a href="tel:+916376692965" style="font-size: 14px; color: var(--muted); text-decoration: none;">+91 63766 92965</a>
+      </div>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 32px; height: 32px; border: 1px solid rgba(201,168,76,0.25); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--gold);">◎</div>
+        <span style="font-size: 14px; color: var(--muted);">Jaipur, Rajasthan</span>
+      </div>
+    </div>
+  </div>
+
+  <form class="contact-form reveal" id="contactForm">
+    <div class="form-row">
+      <div class="form-field">
+        <input type="text" name="name" placeholder="Your Name" autocomplete="name">
+      </div>
+      <div class="form-field">
+        <input type="email" name="email" placeholder="Email Address" autocomplete="email" required>
+      </div>
+    </div>
+    <div class="form-field">
+      <input type="text" name="event" placeholder="Event Type">
+    </div>
+    <div class="form-field">
+      <input type="text" name="budget" placeholder="Approximate Budget (optional)">
+    </div>
+    <div class="form-field">
+      <textarea rows="5" name="message" placeholder="Tell me about your event..." required></textarea>
+    </div>
+    <button class="submit-btn" type="submit"><span>Send Email →</span></button>
+  </form>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Samarth Sharma</div>
+  <ul class="footer-links">
+    <li><a href="mailto:samarths177@gmail.com">Email</a></li>
+    <li><a href="tel:+916376692965">Call</a></li>
+    <li><a href="#work">Reel</a></li>
+    <li><a href="#about">About</a></li>
+  </ul>
+  <div class="footer-copy">© 2026 Samarth Sharma</div>
+</footer>
+
+<script>
+  // Mobile nav toggle
+  const nav = document.querySelector('nav');
+  const navToggle = document.getElementById('navToggle');
+  navToggle?.addEventListener('click', () => {
+    const isOpen = nav.classList.toggle('is-open');
+    navToggle.setAttribute('aria-expanded', String(isOpen));
+    navToggle.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+  });
+  document.querySelectorAll('nav a').forEach(a => {
+    a.addEventListener('click', () => {
+      if (nav.classList.contains('is-open')) {
+        nav.classList.remove('is-open');
+        navToggle?.setAttribute('aria-expanded', 'false');
+        navToggle?.setAttribute('aria-label', 'Open menu');
+      }
+    });
+  });
+
+  const col1 = document.getElementById('col1');
+  const col2 = document.getElementById('col2');
+
+  // Curve the "sleeping" reel (adds Y offsets per frame)
+  function applyReelCurve(trackEl, amplitude = 16, phase = 0) {
+    if (!trackEl) return;
+    const frames = trackEl.querySelectorAll('.reel-frame');
+    const n = frames.length || 1;
+    frames.forEach((frame, i) => {
+      const t = (i / (n - 1 || 1)) * Math.PI * 2;
+      const y = Math.sin(t + phase) * amplitude;
+      frame.style.setProperty('--curve-y', `${y.toFixed(2)}px`);
+    });
+  }
+
+  function refreshReelCurve() {
+    // Scale amplitude a bit based on viewport width
+    const w = Math.max(320, Math.min(window.innerWidth, 1600));
+    const amp = Math.round(8 + (w / 1600) * 12); // 8..20
+    applyReelCurve(col1, amp, 0.35);
+    applyReelCurve(col2, Math.max(6, amp - 3), 1.35);
+  }
+
+  refreshReelCurve();
+  window.addEventListener('resize', () => {
+    window.clearTimeout(window.__reelCurveT);
+    window.__reelCurveT = window.setTimeout(refreshReelCurve, 120);
+  });
+
+  // Reveal on scroll
+  const reveals = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  reveals.forEach(r => io.observe(r));
+
+  // Draggable horizontal reel
+  const hReel = document.getElementById('hReel');
+  let isDown = false, startX = 0, scrollLeft = 0;
+  let autoPaused = false;
+  let autoReelRAF = 0;
+  let lastAutoTs = 0;
+  let reelLoopWidth = 0;
+
+  function setupInfiniteHorizontalReel() {
+    if (!hReel) return;
+    if (hReel.dataset.media === 'video') {
+      reelLoopWidth = 0;
+      return;
+    }
+    if (hReel.dataset.loopReady === 'true') {
+      reelLoopWidth = hReel.scrollWidth / 2;
+      return;
+    }
+    const originalFrames = Array.from(hReel.children);
+    originalFrames.forEach((frame) => {
+      hReel.appendChild(frame.cloneNode(true));
+    });
+    hReel.dataset.loopReady = 'true';
+    reelLoopWidth = hReel.scrollWidth / 2;
+  }
+
+  function applyHorizontalReelCurve() {
+    if (!hReel) return;
+    const frames = Array.from(hReel.querySelectorAll('.h-reel-frame'));
+    const n = frames.length || 1;
+    frames.forEach((frame, i) => {
+      const t = (i / Math.max(1, n - 1)) * Math.PI * 1.4;
+      const y = Math.sin(t) * 12; // small cinematic curve
+      const tilt = Math.sin(t + 0.55) * 0.9;
+      frame.style.setProperty('--h-curve-y', `${y.toFixed(2)}px`);
+      frame.style.setProperty('--h-tilt', `${tilt.toFixed(2)}deg`);
+      frame.style.setProperty('--h-delay', `${(i * 0.14).toFixed(2)}s`);
+    });
+  }
+
+  function autoMoveReel(ts) {
+    if (!lastAutoTs) lastAutoTs = ts;
+    const dt = ts - lastAutoTs;
+    lastAutoTs = ts;
+    if (hReel && hReel.dataset.media !== 'video' && !autoPaused && !isDown) {
+      hReel.scrollLeft += dt * 0.06;
+      if (reelLoopWidth > 0 && hReel.scrollLeft >= reelLoopWidth) {
+        hReel.scrollLeft -= reelLoopWidth;
+      }
+    }
+    autoReelRAF = window.requestAnimationFrame(autoMoveReel);
+  }
+
+  function onPointerDown(e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    isDown = true;
+    autoPaused = true;
+    startX = e.clientX;
+    scrollLeft = hReel.scrollLeft;
+    hReel.style.cursor = 'grabbing';
+    hReel.setPointerCapture(e.pointerId);
+  }
+
+  function onPointerMove(e) {
+    if (!isDown) return;
+    const dx = e.clientX - startX;
+    hReel.scrollLeft = scrollLeft - dx * 1.5;
+  }
+
+  function onPointerEnd(e) {
+    if (!isDown) return;
+    isDown = false;
+    autoPaused = false;
+    hReel.style.cursor = 'grab';
+    if (typeof e.pointerId === 'number') {
+      try { hReel.releasePointerCapture(e.pointerId); } catch (_) {}
+    }
+  }
+
+  function initHorizontalReelVideos() {
+    if (!hReel) return;
+    const videos = Array.from(hReel.querySelectorAll('.h-reel-video'));
+    videos.forEach((video) => {
+      video.muted = true;
+      video.defaultMuted = true;
+      video.playsInline = true;
+      const playAttempt = video.play();
+      if (playAttempt && typeof playAttempt.catch === 'function') {
+        playAttempt.catch(() => {});
+      }
+    });
+  }
+
+  hReel.addEventListener('pointerdown', onPointerDown);
+  hReel.addEventListener('pointermove', onPointerMove);
+  hReel.addEventListener('pointerup', onPointerEnd);
+  hReel.addEventListener('pointercancel', onPointerEnd);
+  hReel.addEventListener('pointerleave', onPointerEnd);
+  setupInfiniteHorizontalReel();
+  initHorizontalReelVideos();
+  applyHorizontalReelCurve();
+  window.addEventListener('resize', () => {
+    window.clearTimeout(window.__hReelCurveT);
+    window.__hReelCurveT = window.setTimeout(() => {
+      setupInfiniteHorizontalReel();
+      applyHorizontalReelCurve();
+    }, 100);
+  });
+  autoReelRAF = window.requestAnimationFrame(autoMoveReel);
+
+  // Smooth nav appearance
+  window.addEventListener('scroll', () => {
+    const nav = document.querySelector('nav');
+    if (window.scrollY > 60) {
+      nav.style.background = 'rgba(13,13,13,0.92)';
+      nav.style.backdropFilter = 'blur(12px)';
+      nav.style.borderBottom = '1px solid rgba(201,168,76,0.12)';
+    } else {
+      nav.style.background = '';
+      nav.style.backdropFilter = '';
+      nav.style.borderBottom = '';
+    }
+  });
+
+  // Animate stats counter (resume-aligned)
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function animateCount(el) {
+    const target = Number(el.dataset.target || 0);
+    const suffix = el.dataset.suffix || '';
+    if (prefersReduced) {
+      el.textContent = String(target) + suffix;
+      return;
+    }
+    let current = 0;
+    const steps = 48;
+    const step = target / steps;
+    const t = setInterval(() => {
+      current += step;
+      if (current >= target) {
+        current = target;
+        clearInterval(t);
+      }
+      el.textContent = String(Math.floor(current)) + suffix;
+    }, 20);
+  }
+  const statsIo = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      document.querySelectorAll('.stat-number').forEach(animateCount);
+      statsIo.disconnect();
+    });
+  }, { threshold: 0.25 });
+  const statsSection = document.querySelector('.stats-section');
+  if (statsSection) statsIo.observe(statsSection);
+
+  // Contact form -> opens an email draft (no backend needed)
+  const form = document.getElementById('contactForm');
+  form?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const name = String(fd.get('name') || '').trim();
+    const email = String(fd.get('email') || '').trim();
+    const eventType = String(fd.get('event') || '').trim();
+    const budget = String(fd.get('budget') || '').trim();
+    const message = String(fd.get('message') || '').trim();
+    const subject = encodeURIComponent(`Event enquiry${eventType ? ` — ${eventType}` : ''}`);
+    const body = encodeURIComponent(
+      `Hi Samarth,\\n\\n` +
+      `${message}\\n\\n` +
+      `—\\n` +
+      `Name: ${name || '(not provided)'}\\n` +
+      `Email: ${email}\\n` +
+      `Event: ${eventType || '(not provided)'}\\n` +
+      `Budget: ${budget || '(not provided)'}\\n`
+    );
+    window.location.href = `mailto:samarths177@gmail.com?subject=${subject}&body=${body}`;
+  });
+
+  // Shatter hover text ("Event Manager")
+  function initShatter(el) {
+    if (!el) return;
+    const enable = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    if (!enable) return;
+
+    const text = el.dataset.text || el.textContent || '';
+    el.textContent = '';
+
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      const s = document.createElement('span');
+      s.className = 'ch';
+      s.textContent = ch === ' ' ? '\u00A0' : ch;
+      frag.appendChild(s);
+    }
+    el.appendChild(frag);
+
+    const letters = Array.from(el.querySelectorAll('.ch'));
+    function randomize() {
+      const maxX = 42;
+      const maxY = 22;
+      letters.forEach((node, idx) => {
+        const sign = idx % 2 === 0 ? 1 : -1;
+        const dx = (Math.random() * maxX + 8) * sign;
+        const dy = (Math.random() * maxY + 6) * (Math.random() > 0.5 ? 1 : -1);
+        const dr = (Math.random() * 28 + 6) * (Math.random() > 0.5 ? 1 : -1);
+        const ds = 0.94 + Math.random() * 0.16;
+        const doo = 0.55 + Math.random() * 0.45;
+        const db = Math.random() > 0.55 ? (Math.random() * 1.2) : 0;
+        node.style.setProperty('--dx', `${dx}px`);
+        node.style.setProperty('--dy', `${dy}px`);
+        node.style.setProperty('--dr', `${dr}deg`);
+        node.style.setProperty('--ds', `${ds}`);
+        node.style.setProperty('--do', `${doo}`);
+        node.style.setProperty('--db', `${db}px`);
+      });
+    }
+
+    const container = el.closest('.hero-role-tag') || el;
+    container.addEventListener('mouseenter', () => {
+      randomize();
+      el.classList.add('is-shattered');
+    });
+    container.addEventListener('mouseleave', () => {
+      el.classList.remove('is-shattered');
+    });
+    container.addEventListener('click', () => {
+      randomize();
+      el.classList.add('is-shattered');
+      window.setTimeout(() => el.classList.remove('is-shattered'), 520);
+    });
+  }
+
+  initShatter(document.getElementById('eventTag'));
+</script>
+</body>
+</html>
